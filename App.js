@@ -1,42 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { SafeAreaView, View, Text } from "react-native";
 import { ListItem } from "react-native-elements";
-import { Server, Model, Factory } from "miragejs";
-import faker from "faker";
+import { makeServer } from "./server";
 
-if (window.server) {
-  server.shutdown();
+if (process.env.NODE_ENV === "development") {
+  if (window.server) {
+    window.server.shutdown();
+  }
+  window.server = makeServer();
 }
 
-window.server = new Server({
-  models: {
-    user: Model
-  },
-  factories: {
-    user: Factory.extend({
-      name() {
-        return faker.name.findName();
-      },
-      avatarUrl(i) {
-        let c = i % 2 ? "men" : "women";
-        return `https://randomuser.me/api/portraits/${c}/${i}.jpg`;
-      },
-      title() {
-        return faker.name.title();
-      }
-    })
-  },
-  seeds(server) {
-    server.createList("user", 25);
-  },
-  routes() {
-    this.get("/api/users", schema => {
-      return schema.users.all();
-    });
-  }
-});
-
-const App = () => {
+export default App = () => {
   let [users, setUsers] = useState([]);
   let [serverError, setServerError] = useState();
 
@@ -45,7 +19,7 @@ const App = () => {
       try {
         let res = await fetch("/api/users");
         let data = await res.json();
-        setUsers(data.users);
+        data.error ? setServerError(data.error) : setUsers(data.users);
       } catch (error) {
         setServerError(error.message);
       }
@@ -64,10 +38,11 @@ const App = () => {
         <View>
           {users.map(user => (
             <ListItem
-              testId={`user-${user.id}`}
+              testID={`user-${user.id}`}
               key={user.id}
               leftAvatar={{ source: { uri: user.avatarUrl } }}
               title={user.name}
+              titleProps={{ testID: `user-${user.id}-name` }}
               subtitle={user.title}
               bottomDivider
               chevron
@@ -78,5 +53,3 @@ const App = () => {
     </SafeAreaView>
   );
 };
-
-export default App;
